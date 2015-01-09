@@ -10,7 +10,8 @@ function resolveMap(source) {
 }
 
 function hasInlinedSource(existingMap) {
-  return existingMap.sourcesContent && !!existingMap.sourcesContent[0];
+  // unfuck: Test for existance of a non-empty array array - assume that the array contains sources if it.
+  return existingMap.sourcesContent && existingMap.sourcesContent instanceof Array && existingMap.sourcesContent.length > 0;
 }
 
 function Combiner(file, sourceRoot) {
@@ -27,11 +28,15 @@ Combiner.prototype._addGeneratedMap = function (sourceFile, source, offset) {
 Combiner.prototype._addExistingMap = function (sourceFile, source, existingMap, offset) {
   var mappings = mappingsFromMap(existingMap);
 
-  var originalSource = existingMap.sourcesContent[0]
-    , originalSourceFile = existingMap.sources[0];
+   // unfuck: handle sourcemaps with multiple sources.
+   for (var i = 0, len = existingMap.sources.length; i < len; i++){
+     if (!existingMap.sourcesContent) { continue; }
+     this.generator.addSourceContent(existingMap.sources[i], existingMap.sourcesContent[i]);
+   }
 
-  this.generator.addMappings(originalSourceFile || sourceFile, mappings, offset);
-  this.generator.addSourceContent(originalSourceFile || sourceFile, originalSource);
+  // unfuck: passing the source file if original sourcefile is blank is meaningless.
+  // and the mappings will contain the source so just pass null anyway.
+  this.generator.addMappings(null, mappings, offset);
   return this;
 };
 
